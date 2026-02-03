@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  db:
+    image: postgres:15
+    container_name: devops-postgres
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Aplicación Flask
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: devops-flask-app
+    environment:
+      FLASK_ENV: development
+      DATABASE_URI: postgresql://myuser:mypassword@db:5432/mydatabase
+      SECRET_KEY: dev-secret-key-cambiar-en-produccion
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../app:/app/app
+      - ../run.py:/app/run.py
+      - ../manage.py:/app/manage.py
+
+# Volumen para persistir datos de PostgreSQL
+volumes:
+  postgres_data:
