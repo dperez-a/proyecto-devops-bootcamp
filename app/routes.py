@@ -1,4 +1,3 @@
-cat > app/routes.py << 'EOF'
 from flask import Blueprint, request, jsonify
 from app.models import Data
 from app import db
@@ -35,4 +34,3 @@ def delete_data(id):
     db.session.delete(element_to_delete)
     db.session.commit()
     return {"message": "Data deleted successfully"}
-EOF

@@ -1,4 +1,3 @@
-cat > app/config.py << 'EOF'
 import os
 
 
@@ -28,4 +27,3 @@ config_dict = {
     "production": ProductionConfig,
     # Add other environments if needed
 }
-EOF

@@ -1,4 +1,3 @@
-cat > app/__init__.py << 'EOF'
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from app.config import config_dict
@@ -20,4 +19,3 @@ def create_app(config_name):
     app.register_blueprint(data_routes)
 
     return app
-EOF

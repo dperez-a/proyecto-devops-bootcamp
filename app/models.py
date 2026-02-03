@@ -1,4 +1,3 @@
-cat > app/models.py << 'EOF'
 from app import db
 
 
@@ -8,4 +7,3 @@ class Data(db.Model):
 
     def __repr__(self):
         return f"<Data id={self.id} name={self.name}>"
-EOF
