@@ -1,48 +1,58 @@
 from diagrams import Diagram, Cluster, Edge
-from diagrams.aws.network import VPC, InternetGateway, ELB, Route53
+from diagrams.aws.network import InternetGateway, ELB
 from diagrams.aws.compute import EC2
 from diagrams.aws.database import RDS
 from diagrams.aws.management import Cloudwatch
-from diagrams.aws.general import Users
+from diagrams.onprem.client import Users
 
-# Configuración del diagrama
 with Diagram("Arquitectura AWS - Aplicación Flask", 
              filename="docs/diagramas/arquitectura-aws",
              show=False,
              direction="TB",
              graph_attr={
-                 "fontsize": "14",
+                 "fontsize": "12",
                  "bgcolor": "white",
-                 "pad": "0.5"
+                 "pad": "1.0",
+                 "nodesep": "1.5",
+                 "ranksep": "1.5",
+                 "splines": "ortho",
+                 "concentrate": "false"
              }):
     
+    # Capa externa: Usuarios
     users = Users("Usuarios")
     igw = InternetGateway("Internet Gateway")
     
-    with Cluster("VPC - Production"):
-        alb = ELB("Application\nLoad Balancer\n(HTTPS/SSL)")
+    # VPC
+    with Cluster("VPC Production"):
         
-        with Cluster("Availability Zone eu-west-1a"):
-            with Cluster("Private Subnet 1a"):
-                ec2_1 = EC2("EC2-1\nFlask + Docker\nt2.micro")
+        # ALB (implícitamente en subnets públicas)
+        alb = ELB("Application Load Balancer\nHTTPS:443 + SSL/TLS")
         
-        with Cluster("Availability Zone eu-west-1b"):
-            with Cluster("Private Subnet 1b"):
-                ec2_2 = EC2("EC2-2\nFlask + Docker\nt2.micro")
+        # Availability Zones en paralelo
+        with Cluster("AZ eu-west-1a"):
+            ec2_1 = EC2("EC2-1\nFlask + Docker\nt2.micro\n(Private Subnet)")
         
-        with Cluster("Database Layer"):
-            db = RDS("RDS PostgreSQL 15\nMulti-AZ\ndb.t3.micro")
+        with Cluster("AZ eu-west-1b"):
+            ec2_2 = EC2("EC2-2\nFlask + Docker\nt2.micro\n(Private Subnet)")
+        
+        # Base de datos
+        db = RDS("RDS PostgreSQL 15\nMulti-AZ\ndb.t3.micro")
     
-    monitoring = Cloudwatch("CloudWatch\nLogs & Metrics")
+    # CloudWatch fuera
+    cw = Cloudwatch("AWS CloudWatch\nLogs & Metrics")
     
-    users >> Edge(label="HTTPS") >> igw >> alb
-    alb >> Edge(label="HTTP:5000") >> ec2_1
-    alb >> Edge(label="HTTP:5000") >> ec2_2
-    ec2_1 >> Edge(label="PostgreSQL:5432") >> db
-    ec2_2 >> Edge(label="PostgreSQL:5432") >> db
+    # Flujo principal (flechas sólidas azules/verdes)
+    users >> Edge(label="HTTPS", color="darkblue", style="bold") >> igw
+    igw >> Edge(color="darkblue") >> alb
+    alb >> Edge(label="5000", color="darkgreen") >> ec2_1
+    alb >> Edge(label="5000", color="darkgreen") >> ec2_2
+    ec2_1 >> Edge(label="5432", color="green") >> db
+    ec2_2 >> Edge(label="5432", color="green") >> db
     
-    ec2_1 >> Edge(label="logs", style="dashed", color="orange") >> monitoring
-    ec2_2 >> Edge(label="logs", style="dashed", color="orange") >> monitoring
-    db >> Edge(label="metrics", style="dashed", color="orange") >> monitoring
+    # Monitorización (flechas punteadas naranjas, DIRECTAS sin cruzar)
+    ec2_1 >> Edge(style="dashed", color="orange") >> cw
+    ec2_2 >> Edge(style="dashed", color="orange") >> cw
+    db >> Edge(style="dashed", color="orange") >> cw
 
-print("✅ Diagrama creado en: docs/diagramas/arquitectura-aws.png")
+print("✅ Diagrama limpio creado")
